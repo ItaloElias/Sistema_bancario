@@ -1,0 +1,23 @@
+# Bytecode do Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Arquivos temporários
+*.log
+*.tmp
+
+# Arquivos JSON
+*.json
+
+# Ambiente virtual
+venv/
+.env/
+
+# Configurações de IDEs
+.vscode/
+.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
