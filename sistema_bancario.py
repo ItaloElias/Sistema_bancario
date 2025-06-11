@@ -2,34 +2,40 @@ import datetime
 import requests
 from dados import carregar_usuarios, salvar_usuarios, carregar_contas, salvar_contas
 
-LIMITE_SAQUES = 3
-AGENCIA = "0001"
+# Constantes do sistema
+LIMITE_SAQUES = 3  # Limite de saques diários por conta
+AGENCIA = "0001"   # Número fixo da agência
 
+# Carrega os dados persistidos de usuários e contas
 usuarios = carregar_usuarios()
 contas = carregar_contas()
 
+# Busca uma conta pelo número da conta
 def buscar_conta_por_numero(contas, numero_conta):
     for conta in contas:
         if str(conta["numero_conta"]) == str(numero_conta):
             return conta
     return None
 
+# Busca uma conta pelo CPF do usuário
 def buscar_conta_por_cpf(contas, cpf):
     for conta in contas:
         if conta["usuario"]["cpf"] == cpf:
             return conta
     return None
 
+# Realiza um depósito na conta informada
 def depositar_na_conta(conta):
     valor = float(input("Valor do depósito: "))
     if valor > 0:
         conta["saldo"] += valor
         conta["extrato"] += f"Depósito: R$ {valor:.2f}\n"
-        salvar_contas(contas)
+        salvar_contas(contas)  # Salva alteração no arquivo
         print("Depósito realizado com sucesso!")
     else:
         print("Operação falhou! Valor inválido.")
 
+# Realiza um saque na conta informada
 def sacar_da_conta(conta):
     valor = float(input("Valor do saque: "))
     if valor > conta["saldo"]:
@@ -42,17 +48,19 @@ def sacar_da_conta(conta):
         conta["saldo"] -= valor
         conta["extrato"] += f"Saque: R$ {valor:.2f}\n"
         conta["numero_saques"] += 1
-        salvar_contas(contas)
+        salvar_contas(contas)  # Salva alteração no arquivo
         print("Saque realizado com sucesso!")
     else:
         print("Operação falhou! Valor inválido.")
 
+# Exibe o extrato e saldo da conta informada
 def exibir_extrato_da_conta(conta):
     print("\n========== EXTRATO ==========")
     print("Não foram realizadas movimentações." if not conta["extrato"] else conta["extrato"])
     print(f"\nSaldo: R$ {conta['saldo']:.2f}")
     print("=============================")
 
+# Valida o CPF informado conforme regras brasileiras
 def validar_cpf(cpf):
     cpf = ''.join(filter(str.isdigit, cpf))
     if len(cpf) != 11 or cpf == cpf[0] * 11:
@@ -64,6 +72,7 @@ def validar_cpf(cpf):
             return False
     return True
 
+# Valida a data de nascimento no formato dd-mm-aaaa
 def validar_data(data):
     try:
         datetime.datetime.strptime(data, "%d-%m-%Y")
@@ -71,6 +80,7 @@ def validar_data(data):
     except ValueError:
         return False
 
+# Busca o endereço completo a partir do CEP usando a API ViaCEP
 def buscar_endereco_por_cep(cep):
     cep = ''.join(filter(str.isdigit, cep))
     if len(cep) != 8:
@@ -89,6 +99,7 @@ def buscar_endereco_por_cep(cep):
         print("Erro ao buscar o endereço:", e)
         return None
 
+# Cria um novo usuário e salva no arquivo
 def criar_usuario(usuarios):
     while True:
         cpf = input("Informe o CPF (somente números): ")
@@ -122,9 +133,11 @@ def criar_usuario(usuarios):
     salvar_usuarios(usuarios)
     print("Usuário criado com sucesso!")
 
+# Busca um usuário pelo CPF na lista de usuários
 def filtrar_usuario(cpf, usuarios):
     return next((u for u in usuarios if u["cpf"] == cpf), None)
 
+# Cria uma nova conta para um usuário existente
 def criar_conta(contas, usuarios):
     cpf = input("Informe o CPF do usuário: ")
     usuario = filtrar_usuario(cpf, usuarios)
@@ -132,7 +145,12 @@ def criar_conta(contas, usuarios):
         print("Usuário não encontrado!")
         return
 
-    numero_conta = len(contas) + 1
+    # Garante que o número da conta será sempre único e crescente
+    if contas:
+        numero_conta = max(conta["numero_conta"] for conta in contas) + 1
+    else:
+        numero_conta = 1
+
     contas.append({
         "agencia": AGENCIA,
         "numero_conta": numero_conta,
@@ -144,6 +162,7 @@ def criar_conta(contas, usuarios):
     salvar_contas(contas)
     print(f"Conta criada com sucesso! Número da conta: {numero_conta}")
 
+# Lista todas as contas cadastradas
 def listar_contas(_):
     contas = carregar_contas()
     if not contas:
@@ -153,6 +172,7 @@ def listar_contas(_):
         usuario = conta["usuario"]
         print(f"Agência: {conta['agencia']}, Conta: {conta['numero_conta']}, Titular: {usuario['nome']}")
 
+# Apaga um usuário pelo CPF (se não houver contas vinculadas)
 def apagar_usuario(usuarios, contas):
     cpf = input("Informe o CPF do usuário a ser apagado: ")
     usuario = filtrar_usuario(cpf, usuarios)
@@ -167,11 +187,13 @@ def apagar_usuario(usuarios, contas):
     salvar_usuarios(usuarios)
     print("Usuário apagado com sucesso!")
 
+# Apaga a conta informada
 def apagar_conta(contas, conta):
     contas.remove(conta)
     salvar_contas(contas)
     print("Conta apagada com sucesso!")
 
+# Menu de operações da conta (aparece após login)
 def menu_conta(conta):
     primeira_vez = True    
     while True:
@@ -200,6 +222,7 @@ def menu_conta(conta):
         else:
             print("Opção inválida!")
 
+# Menu inicial do sistema (cadastro, login, listagem, etc)
 def menu_inicial():
     while True:
         print("""
@@ -231,5 +254,6 @@ def menu_inicial():
         else:
             print("Opção inválida!")
 
+# Ponto de entrada do sistema
 if __name__ == "__main__":
     menu_inicial()
