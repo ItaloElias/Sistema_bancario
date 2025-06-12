@@ -10,17 +10,17 @@ O sistema permite:
 - Cadastro de usuários e contas bancárias
 - Depósitos, saques e extratos vinculados a contas
 - Busca automática de endereço pelo CEP (ViaCEP)
-- Persistência dos dados em arquivos `.json`
+- Persistência dos dados em arquivos `.pkl` (pickle)
 - Exclusão de usuários e contas
 - Interface de menus para navegação
 
 ## Estrutura do Projeto
 
-- `sistema_bancario.py`: Arquivo principal com toda a lógica do sistema e menus.
-- `dados.py`: Responsável por carregar e salvar os dados de usuários e contas em arquivos JSON.
-- `usuarios.json` e `contas.json`: Arquivos gerados automaticamente para armazenar os dados.
-- `requirements.txt`: Lista de dependências do projeto.
-- `.gitignore`: Arquivo para ignorar arquivos e pastas desnecessários no controle de versão.
+- [`sistema_bancario.py`](sistema_bancario.py): Arquivo principal com toda a lógica do sistema e menus.
+- [`dados.py`](dados.py): Responsável por carregar e salvar os dados de usuários e contas em arquivos pickle (`.pkl`).
+- `usuarios.pkl` e `contas.pkl`: Arquivos gerados automaticamente para armazenar os dados.
+- [`requirements.txt`](requirements.txt): Lista de dependências do projeto.
+- `.gitignore.txt`: Arquivo para ignorar arquivos e pastas desnecessários no controle de versão.
 - Requer a biblioteca `requests` para consulta de CEP.
 
 ## Como Executar
@@ -60,16 +60,16 @@ Após acessar uma conta pelo número:
 - **CPF**: Validado conforme regras brasileiras. Não é possível cadastrar dois usuários com o mesmo CPF.
 - **Data de nascimento**: Deve estar no formato `dd-mm-aaaa`.
 - **Endereço**: Buscado automaticamente pelo CEP informado (necessário internet).
-- **Persistência**: Todos os dados são salvos automaticamente em arquivos `.json` na mesma pasta do projeto.
+- **Persistência**: Todos os dados são salvos automaticamente em arquivos `.pkl` na mesma pasta do projeto.
 - **Exclusão**: Não é possível excluir um usuário que possua contas vinculadas.
 
 ## Geração de Dados de Teste
 
 Para facilitar os testes, utilizei a ferramenta [4Devs](https://www.4devs.com.br/) para gerar CPFs e CEPs válidos.
 
-## Arquivo `.gitignore`
+## Arquivo `.gitignore.txt`
 
-O projeto contém um arquivo `.gitignore` para evitar o versionamento de arquivos desnecessários, como:
+O projeto contém um arquivo `.gitignore.txt` para evitar o versionamento de arquivos desnecessários, como:
 
 ```
 # Bytecode do Python
