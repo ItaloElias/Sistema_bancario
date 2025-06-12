@@ -84,6 +84,9 @@ __pycache__/
 # Arquivos JSON
 *.json
 
+# Arquivos pickle
+*.pkl
+
 # Ambiente virtual
 venv/
 .env/
