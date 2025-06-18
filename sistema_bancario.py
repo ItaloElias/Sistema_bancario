@@ -1,180 +1,131 @@
 import datetime
-import requests
-from abc import ABC, abstractmethod
+from decimal import Decimal, ROUND_HALF_UP
+from modelos import Conta, ContaCorrente, PessoaFisica
+from transacoes import Deposito, Saque, Historico
+from utils import validar_cpf, validar_data, buscar_endereco_por_cep
 from dados import carregar_usuarios, salvar_usuarios, carregar_contas, salvar_contas
 
 LIMITE_SAQUES = 3
 AGENCIA = "0001"
 
-# --- CLASSES DO SISTEMA ---
-
-class Historico:
-    def __init__(self):
-        self.transacoes = []
-
-    def adicionar_transacao(self, transacao):
-        self.transacoes.append(transacao)
-
-class Transacao(ABC):
-    @abstractmethod
-    def registrar(self, conta):
-        pass
-
-class Deposito(Transacao):
-    def __init__(self, valor):
-        self.valor = valor
-
-    def registrar(self, conta):
-        if conta.depositar(self.valor):
-            conta.historico.adicionar_transacao(self)
-            print("Depósito realizado com sucesso!")
-        else:
-            print("Operação falhou! Valor inválido.")
-
-class Saque(Transacao):
-    def __init__(self, valor):
-        self.valor = valor
-
-    def registrar(self, conta):
-        if conta.sacar(self.valor):
-            conta.historico.adicionar_transacao(self)
-            print("Saque realizado com sucesso!")
-        else:
-            print("Operação falhou! Verifique saldo, limite ou número de saques.")
-
-class Conta:
-    def __init__(self, cliente, numero, agencia=AGENCIA):
-        self.saldo = 0.0
-        self.numero = numero
-        self.agencia = agencia
-        self.cliente = cliente
-        self.historico = Historico()
-
-    def depositar(self, valor):
-        if valor > 0:
-            self.saldo += valor
-            return True
-        return False
-
-    def sacar(self, valor):
-        if valor > 0 and valor <= self.saldo:
-            self.saldo -= valor
-            return True
-        return False
-
-class ContaCorrente(Conta):
-    def __init__(self, cliente, numero, limite=500, limite_saques=LIMITE_SAQUES):
-        super().__init__(cliente, numero)
-        self.limite = limite
-        self.limite_saques = limite_saques
-        self.numero_saques = 0
-
-    def sacar(self, valor):
-        if self.numero_saques >= self.limite_saques:
-            print("Limite de saques excedido.")
-            return False
-        
-        self.numero_saques += 1
-        saques_restantes = self.limite_saques - self.numero_saques
-        print(f"Saques restantes: {saques_restantes}")
-        return True 
-
-class Cliente:
-    def __init__(self, endereco):
-        self.endereco = endereco
-        self.contas = []
-
-    def adicionar_conta(self, conta):
-        self.contas.append(conta)
-
-    def realizar_transacao(self, conta, transacao):
-        transacao.registrar(conta)
-
-class PessoaFisica(Cliente):
-    def __init__(self, nome, cpf, data_nascimento, endereco):
-        super().__init__(endereco)
-        self.nome = nome
-        self.cpf = cpf
-        self.data_nascimento = data_nascimento
-
-# --- FUNÇÕES AUXILIARES ---
-
+# Carrega usuários e contas do armazenamento persistente
 usuarios = carregar_usuarios()
 contas = carregar_contas()
 
 def buscar_conta_por_numero(contas, numero_conta):
+    """
+    Busca uma conta pelo número.
+    :param contas: Lista de contas cadastradas.
+    :param numero_conta: Número da conta a ser buscada.
+    :return: Conta encontrada ou None.
+    """
     for conta in contas:
         if str(conta.numero) == str(numero_conta):
             return conta
     return None
 
 def buscar_cliente_por_cpf(usuarios, cpf):
+    """
+    Busca um cliente pelo CPF.
+    :param usuarios: Lista de usuários cadastrados.
+    :param cpf: CPF do cliente.
+    :return: Cliente encontrado ou None.
+    """
     for cliente in usuarios:
         if isinstance(cliente, PessoaFisica) and cliente.cpf == cpf:
             return cliente
     return None
 
 def depositar_na_conta(conta):
-    valor = float(input("Valor do depósito: "))
+    """
+    Realiza um depósito na conta informada.
+    :param conta: Conta a receber o depósito.
+    """
+    try:
+        valor = Decimal(input("Valor do depósito: ").replace(",", "."))
+    except Exception:
+        print("Valor inválido!")
+        return
     transacao = Deposito(valor)
-    conta.cliente.realizar_transacao(conta, transacao)
-    salvar_contas(contas)
+    resultado = conta.cliente.realizar_transacao(conta, transacao)
+    if resultado:
+        print("Depósito realizado com sucesso!")
+        salvar_contas(contas)
+    else:
+        print("Operação falhou! Valor inválido.")
 
 def sacar_da_conta(conta):
-    valor = float(input("Valor do saque: "))
+    """
+    Realiza um saque na conta informada.
+    :param conta: Conta a ser debitada.
+    """
+    try:
+        valor = Decimal(input("Valor do saque: ").replace(",", "."))
+    except Exception:
+        print("Valor inválido!")
+        return
     transacao = Saque(valor)
-    conta.cliente.realizar_transacao(conta, transacao)
-    salvar_contas(contas)
+    resultado = conta.cliente.realizar_transacao(conta, transacao)
+    if resultado is True:
+        if isinstance(conta, ContaCorrente):
+            saques_restantes = conta.limite_saques - conta.numero_saques
+            print("Saque realizado com sucesso!")
+            print(f"Saques restantes: {saques_restantes}")
+        else:
+            print("Saque realizado com sucesso!")
+        salvar_contas(contas)
+    elif resultado == "limite_saques":
+        print("Limite de saques excedido.")
+    elif resultado == "limite_valor":
+        print("Valor do saque excede o limite permitido.")
+    elif resultado == "saldo":
+        print("Saldo insuficiente para saque.")
+    else:
+        print("Operação falhou! Verifique saldo.")
 
 def exibir_extrato_da_conta(conta):
-    print("\n========== EXTRATO ==========")
+    """
+    Exibe o extrato bancário da conta informada.
+    :param conta: Conta a ser exibida.
+    """
+    print("\n=============================\n")
+    print("\nEXTRATO BANCÁRIO")
+    print("Banco: Banco Exemplo S.A.")
+    print(f"Agência: {conta.agencia}")
+    print(f"Conta: {conta.numero}")
+    print(f"Titular: {conta.cliente.nome}")
+    print(f"Período: 01/06/2025 a {datetime.datetime.now().strftime('%d/%m/%Y')}\n")
+    print("Data          Hora         Descrição        Tipo      Valor (R$)   Saldo (R$)")
+    
+    saldo = Decimal("0.00")
     if not conta.historico.transacoes:
         print("Não foram realizadas movimentações.")
     else:
         for t in conta.historico.transacoes:
-            tipo = t.__class__.__name__
-            sinal = "+" if tipo == "Deposito" else "-"
-            print(f"{tipo}: {sinal}R$ {t.valor:.2f}")
-    print(f"\nSaldo: R$ {conta.saldo:.2f}")
-    print("=============================")
-
-def validar_cpf(cpf):
-    cpf = ''.join(filter(str.isdigit, cpf))
-    if len(cpf) != 11 or cpf == cpf[0] * 11:
-        return False
-    for i in range(9, 11):
-        soma = sum(int(cpf[num]) * ((i+1) - num) for num in range(0, i))
-        digito = ((soma * 10) % 11) % 10
-        if digito != int(cpf[i]):
-            return False
-    return True
-
-def validar_data(data):
-    try:
-        datetime.datetime.strptime(data, "%d-%m-%Y")
-        return True
-    except ValueError:
-        return False
-
-def buscar_endereco_por_cep(cep):
-    cep = ''.join(filter(str.isdigit, cep))
-    if len(cep) != 8:
-        print("CEP inválido! Deve conter 8 dígitos.")
-        return None
-    url = f"https://viacep.com.br/ws/{cep}/json/"
-    try:
-        resposta = requests.get(url, timeout=5)
-        dados = resposta.json()
-        if "erro" in dados:
-            print("CEP não encontrado.")
-            return None
-        endereco = f"{dados['logradouro']}, {dados['bairro']} - {dados['localidade']}/{dados['uf']}"
-        return endereco
-    except Exception as e:
-        print("Erro ao buscar o endereço:", e)
-        return None
+            data = getattr(t, "data", datetime.datetime.now().strftime("%d/%m/%Y"))
+            hora = getattr(t, "hora", "--:--:--")
+            if isinstance(t, Deposito):
+                descricao = "Depósito em dinheiro"
+                tipo = "Depósito"
+                valor = Decimal(str(t.valor))
+                saldo += valor
+            elif isinstance(t, Saque):
+                descricao = "Saque em dinheiro"
+                tipo = "Débito"
+                valor = Decimal(str(t.valor))
+                saldo -= valor
+            else:
+                continue
+            print(f"{data:<11} {hora:8}  {descricao:<21} {tipo:<9} "
+                  f"{valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):>10} "
+                  f"{saldo.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):>11}")
+    print("\n=============================")
 
 def criar_usuario(usuarios):
+    """
+    Cria um novo usuário (Pessoa Física) e adiciona à lista de usuários.
+    :param usuarios: Lista de usuários cadastrados.
+    """
     while True:
         cpf = input("Informe o CPF (somente números): ")
         if not validar_cpf(cpf):
@@ -208,6 +159,11 @@ def criar_usuario(usuarios):
     print("Usuário criado com sucesso!")
 
 def criar_conta(contas, usuarios):
+    """
+    Cria uma nova conta corrente para um usuário existente.
+    :param contas: Lista de contas cadastradas.
+    :param usuarios: Lista de usuários cadastrados.
+    """
     cpf = input("Informe o CPF do usuário: ")
     cliente = buscar_cliente_por_cpf(usuarios, cpf)
     if not cliente:
@@ -215,13 +171,18 @@ def criar_conta(contas, usuarios):
         return
 
     numero_conta = len(contas) + 1
-    conta = ContaCorrente(cliente, numero_conta)
+    conta = ContaCorrente(cliente, numero_conta, AGENCIA)
+    conta.historico = Historico()
     contas.append(conta)
     cliente.adicionar_conta(conta)
     salvar_contas(contas)
     print(f"Conta criada com sucesso! Número da conta: {numero_conta}")
 
 def listar_contas(contas):
+    """
+    Lista todas as contas cadastradas no sistema.
+    :param contas: Lista de contas cadastradas.
+    """
     if not contas:
         print("Nenhuma conta cadastrada.")
         return
@@ -230,11 +191,17 @@ def listar_contas(contas):
         print(f"Agência: {conta.agencia}, Conta: {conta.numero}, Titular: {cliente.nome}")
 
 def apagar_usuario(usuarios, contas, cpf):
+    """
+    Remove um usuário do sistema, se não houver contas associadas.
+    :param usuarios: Lista de usuários cadastrados.
+    :param contas: Lista de contas cadastradas.
+    :param cpf: CPF do usuário a ser removido.
+    :return: True se removido, False caso contrário.
+    """
     for conta in contas:
         if conta.cliente.cpf == cpf:
             print("Não é possível apagar o usuário: existe uma conta associada a este CPF.")
             return False
-    # Remove usuário se não houver conta
     for i, usuario in enumerate(usuarios):
         if usuario.cpf == cpf:
             del usuarios[i]
@@ -245,12 +212,21 @@ def apagar_usuario(usuarios, contas, cpf):
     return False
 
 def apagar_conta(contas, conta):
+    """
+    Remove uma conta do sistema.
+    :param contas: Lista de contas cadastradas.
+    :param conta: Conta a ser removida.
+    """
     contas.remove(conta)
     conta.cliente.contas.remove(conta)
     salvar_contas(contas)
     print("Conta apagada com sucesso!")
 
 def menu_conta(conta):
+    """
+    Exibe o menu de operações para uma conta específica.
+    :param conta: Conta selecionada.
+    """
     primeira_vez = True    
     while True:
         if primeira_vez:
@@ -279,6 +255,9 @@ def menu_conta(conta):
             print("Opção inválida!")
 
 def menu_inicial():
+    """
+    Exibe o menu inicial do sistema bancário.
+    """
     while True:
         print("""
 [ec] Entrar na Conta

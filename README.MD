@@ -1,36 +1,49 @@
-# Otimizando Sistema Bancário com Funções Python
+# Sistema Bancário em Python
 
 Projeto proposto pelo bootcamp **Santander 2025 - Backend Python** da DIO/Santander.
 
 ## Sobre o Projeto
 
-Este é um sistema bancário simples, desenvolvido em Python, com foco em aprendizado de funções, manipulação de arquivos, persistência de dados e boas práticas de programação. O projeto é **open source** e voltado para fins educacionais.
+Este é um sistema bancário simples, modularizado e orientado a objetos, desenvolvido em Python. O foco é o aprendizado de boas práticas, funções, manipulação de arquivos, persistência de dados e organização de código. O projeto é **open source** e voltado para fins educacionais.
 
 O sistema permite:
-- Cadastro de usuários e contas bancárias
+- Cadastro de usuários (Pessoa Física) com validação de CPF e busca automática de endereço via CEP (ViaCEP)
+- Criação de contas correntes com limite de saque e controle de número de saques
 - Depósitos, saques e extratos vinculados a contas
-- Busca automática de endereço pelo CEP (ViaCEP)
 - Persistência dos dados em arquivos `.pkl` (pickle)
 - Exclusão de usuários e contas
 - Interface de menus para navegação
 
 ## Estrutura do Projeto
 
-- [`sistema_bancario.py`](sistema_bancario.py): Arquivo principal com toda a lógica do sistema e menus.
-- [`dados.py`](dados.py): Responsável por carregar e salvar os dados de usuários e contas em arquivos pickle (`.pkl`).
-- `usuarios.pkl` e `contas.pkl`: Arquivos gerados automaticamente para armazenar os dados.
-- [`requirements.txt`](requirements.txt): Lista de dependências do projeto.
-- `.gitignore.txt`: Arquivo para ignorar arquivos e pastas desnecessários no controle de versão.
-- Requer a biblioteca `requests` para consulta de CEP.
+```
+Sistema_bancario/
+│
+├── sistema_bancario.py      # Interface principal (menus, entrada do usuário)
+├── modelos.py               # Classes: Conta, ContaCorrente, Cliente, PessoaFisica
+├── transacoes.py            # Classes: Deposito, Saque, Historico, Transacao
+├── utils.py                 # Funções auxiliares: validação de CPF, data, busca de endereço, etc.
+├── dados.py                 # Funções de persistência (carregar/salvar usuários e contas)
+├── requirements.txt         # Dependências do projeto
+├── .gitignore.txt           # Arquivos e pastas ignorados pelo Git
+├── usuarios.pkl / contas.pkl# Arquivos gerados automaticamente para armazenar os dados
+```
 
 ## Como Executar
 
 1. **Clone ou baixe este repositório.**
-2. Instale as dependências com:
+2. (Opcional) Crie e ative um ambiente virtual:
+   ```
+   python -m venv venv
+   venv\Scripts\activate   # Windows
+   # ou
+   source venv/bin/activate  # Linux/Mac
+   ```
+3. Instale as dependências:
    ```
    pip install -r requirements.txt
    ```
-3. Execute o arquivo principal:
+4. Execute o arquivo principal:
    ```
    python sistema_bancario.py
    ```
@@ -65,7 +78,13 @@ Após acessar uma conta pelo número:
 
 ## Geração de Dados de Teste
 
-Para facilitar os testes, utilizei a ferramenta [4Devs](https://www.4devs.com.br/) para gerar CPFs e CEPs válidos.
+Para facilitar os testes, utilize ferramentas como [4Devs](https://www.4devs.com.br/) para gerar CPFs e CEPs válidos.
+
+## Principais Dependências
+
+- `requests` (para busca de endereço via CEP)
+- `decimal` (precisão em operações financeiras)
+- Outras dependências listadas em `requirements.txt`
 
 ## Arquivo `.gitignore.txt`
 
@@ -99,6 +118,16 @@ venv/
 .DS_Store
 Thumbs.db
 ```
+
+## Boas Práticas Adotadas
+
+- Modularização do código em arquivos separados por responsabilidade
+- Uso de docstrings e comentários explicativos
+- Separação entre lógica de negócio e interface com o usuário
+- Validação de dados de entrada
+- Uso de `Decimal` para operações financeiras
+- Persistência de dados com pickle
+- Padronização de nomes e mensagens
 
 ## Licença
 
